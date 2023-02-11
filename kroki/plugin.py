@@ -168,7 +168,7 @@ class KrokiPlugin(BasePlugin):
         return f'!!! error "Could not render!"\n\n```\n{kroki_data}\n```'
 
     def on_page_markdown(self, markdown, files, page, **_kwargs):
-        debug(f'on_page_markdown [page: {page}]')
+        info(f'on_page_markdown [page: {page}]')
 
         excal_pat1 = re.compile(r"!\[\[(.*excalidraw)(\|\d+){0,1}\]\]", flags=re.IGNORECASE)
         excal_pat2 = re.compile(r"!\[(.*excalidraw)\]\(.*\)", flags=re.IGNORECASE)
