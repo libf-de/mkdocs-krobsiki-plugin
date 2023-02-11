@@ -103,6 +103,8 @@ class KrokiPlugin(BasePlugin):
         file_name = match_obj.group(1)
         info(f"found excalidraw block, with file ${file_name}")
         file_path = os.path.join(self._docs_dir.absolute(), "Excalidraw", file_name + ".md")
+        if not os.path.exists(file_path):
+            file_path = os.path.join(self._docs_dir.absolute(), "Pictures", file_name + ".md")
         info(f"file path is ${file_path}, exists=${str(os.path.exists(file_path))}")
 
         try:
@@ -168,7 +170,7 @@ class KrokiPlugin(BasePlugin):
     def on_page_markdown(self, markdown, files, page, **_kwargs):
         debug(f'on_page_markdown [page: {page}]')
 
-        excal_pat1 = re.compile(r"!\[\[(.*excalidraw)]]", flags=re.IGNORECASE)
+        excal_pat1 = re.compile(r"!\[\[(.*excalidraw)(\|\d+){0,1}\]\]", flags=re.IGNORECASE)
         excal_pat2 = re.compile(r"!\[(.*excalidraw)\]\(.*\)", flags=re.IGNORECASE)
 
         kroki_regex = self.diagram_types.get_block_regex(self.fence_prefix)
