@@ -44,6 +44,7 @@ class KrokiPlugin(BasePlugin):
     from_file_prefix_len = len(from_file_prefix)
 
     def on_config(self, config, **_kwargs):
+        info("HELLLOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO")
         info(f'Configuring: {self.config}')
 
         self.diagram_types = KrokiDiagramTypes(self.config['EnableBlockDiag'],
@@ -97,10 +98,44 @@ class KrokiPlugin(BasePlugin):
 
         return f'/{get_url}'
 
+    
+    def _replace_excal_block(self, match_obj, files, page):
+        file_name = match_obj.group(1)
+        info(f"found excalidraw block, with file ${file_name}")
+        file_path = os.path.join(self._docs_dir.absolute(), "Excalidraw", file_name + ".md")
+        info(f"file path is ${file_path}, exists=${str(os.path.exists(file_path))}")
+
+        try:
+            with open(file_path) as data_file:
+                excal_data = data_file.read()
+        except OSError:
+            msg = f'Can\'t read file: "{file_path}"'
+            error(msg)
+            return f'!!! error {msg}'
+
+        #content_pat = re.compile()
+        kroki_data = re.search(r"```json[\r\n|\r|\n]([\s\S]*)```", excal_data).group(1)
+        get_url = None
+        if self.config["DownloadImages"]:
+            image_data = self.kroki_client.get_image_data("excalidraw", kroki_data, {})
+
+            if image_data:
+                file_name = self._kroki_filename(kroki_data, "excalidraw", page)
+                get_url = self._save_kroki_image_and_get_url(file_name, image_data, files)
+        else:
+            get_url = self.kroki_client.get_url("excalidraw", kroki_data, {})
+
+        if get_url is not None:
+            return f'![Kroki]({get_url})'
+
+        return f'!!! error "Could not render!"\n\n```\n{kroki_data}\n```'
+
     def _replace_kroki_block(self, match_obj, files, page):
         kroki_type = match_obj.group(1).lower()
         kroki_options = match_obj.group(2)
         kroki_data = match_obj.group(3)
+
+        info(f"Got Kroki block!")
 
         if kroki_data.startswith(self.from_file_prefix):
             file_name = kroki_data[self.from_file_prefix_len:].strip()
@@ -133,12 +168,23 @@ class KrokiPlugin(BasePlugin):
     def on_page_markdown(self, markdown, files, page, **_kwargs):
         debug(f'on_page_markdown [page: {page}]')
 
+        excal_pat1 = re.compile(r"!\[\[(.*excalidraw)]]", flags=re.IGNORECASE)
+        excal_pat2 = re.compile(r"!\[(.*excalidraw)\]\(.*\)", flags=re.IGNORECASE)
+
         kroki_regex = self.diagram_types.get_block_regex(self.fence_prefix)
         pattern = re.compile(kroki_regex, flags=re.IGNORECASE + re.DOTALL)
+        
 
         def replace_kroki_block(match_obj):
             return self._replace_kroki_block(match_obj, files, page)
+        
+        def replace_excal_block(match_obj):
+            info("Found excali-block!!!")
+            info(match_obj.groups())
+            return self._replace_excal_block(match_obj, files, page)
 
+        markdown = re.sub(excal_pat1, replace_excal_block, markdown)
+        markdown = re.sub(excal_pat2, replace_excal_block, markdown)
         return re.sub(pattern, replace_kroki_block, markdown)
 
     def on_post_build(self, **_kwargs):
