@@ -169,6 +169,7 @@ class KrokiPlugin(BasePlugin):
 
     def on_page_markdown(self, markdown, files, page, **_kwargs):
         info(f'on_page_markdown [page: {page}]')
+        info(markdown)
 
         excal_pat1 = re.compile(r"!\[\[(.*excalidraw)(\|\d+){0,1}\]\]", flags=re.IGNORECASE)
         excal_pat2 = re.compile(r"!\[(.*excalidraw)\]\(.*\)", flags=re.IGNORECASE)
